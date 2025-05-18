@@ -1,6 +1,17 @@
+# Ignorar archivos temporales y backups
+*.tar.gz
+*.tgz
+*.zip
+*.sql
+*.log
+*.bak
+*.tmp
+.DS_Store
+
+# Carpeta de backups y datos
 /backups/
 /volumes/
+/glpi-10.0.18.tgz
+
+# Archivos de configuración local
 .env
-*.log
-*.tar.gz
-*.sha256
