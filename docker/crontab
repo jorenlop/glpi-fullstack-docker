@@ -1,0 +1,2 @@
+* * * * * www-data /usr/local/bin/php /var/www/html/front/cron.php --force >> /var/www/html/scripts/cron.log 2>&1
+0 2 * * * root bash /var/www/html/scripts/backup_to_cloud.sh >> /var/www/html/scripts/backup.log 2>&1
