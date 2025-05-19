@@ -8,7 +8,7 @@ services:
     container_name: glpi-web
     restart: always
     ports:
-      - "8080:80"  # Puedes cambiar el puerto si es necesario
+      - "80:80"  # Puedes cambiar el puerto si es necesario
     volumes:
       - ./glpi:/var/www/html
       - ./volumes/glpi-files:/var/www/html/files

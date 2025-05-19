@@ -1,7 +1,16 @@
 #!/bin/bash
-echo "🧱 Creando estructura de carpetas en glpi/files/"
-cd glpi
-mkdir -p files/_cron files/_dumps files/_graphs files/_lock files/_pictures files/_plugins \
-         files/_rss files/_sessions files/_tmp files/_uploads
-chown -R www-data:www-data files
-chmod -R 755 files
+set -e
+
+echo "🧱 Creando estructura glpi/files/ …"
+mkdir -p glpi/files/_cron \
+         glpi/files/_dumps \
+         glpi/files/_graphs \
+         glpi/files/_lock \
+         glpi/files/_pictures \
+         glpi/files/_plugins \
+         glpi/files/_rss \
+         glpi/files/_sessions \
+         glpi/files/_tmp \
+         glpi/files/_uploads
+
+echo "⚠️  No intentamos aplicar www-data (solo root en este contenedor)"

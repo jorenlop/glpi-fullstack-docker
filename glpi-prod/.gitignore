@@ -1,0 +1,6 @@
+/backups/
+/volumes/
+.env
+*.log
+*.tar.gz
+*.sha256
