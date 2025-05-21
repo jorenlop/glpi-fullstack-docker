@@ -1,42 +1,23 @@
-# Inicializa GLPI local: instala, configura permisos y directorios
-init:
-	bash scripts/install-glpi.sh
-	bash scripts/post-init.sh
-	docker exec glpi-web chown -R www-data:www-data /var/www/html
-	docker exec glpi-web chmod -R 755 /var/www/html/files
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Levanta los contenedores en segundo plano (modo producción)
-up:
-	docker compose up -d --build
+# Nombre del contenedor de BD en tu docker-compose
+DB_CONTAINER="glpi-db"
+DB_NAME="glpi"
+DB_USER="glpi"
+DB_PASS="glpipass"
 
-# Detiene y elimina contenedores y volúmenes
-down:
-	docker compose down -v
+# Dónde se guardan los dumps en el host
+BACKUP_DIR="$(pwd)/backups/daily/$(date +%F)"
+mkdir -p "$BACKUP_DIR"
+SQL_FILE="$BACKUP_DIR/glpi.sql"
 
-# Ejecuta backup local (BD + archivos)
-backup:
-	docker exec glpi-web bash /var/www/html/scripts/backup.sh
+echo "🌐  Haciendo dump de la base de datos desde ${DB_CONTAINER}..."
+docker exec "$DB_CONTAINER" \
+  sh -c "exec mysqldump -u${DB_USER} -p'${DB_PASS}' ${DB_NAME} --single-transaction --skip-lock-tables" \
+  > "$SQL_FILE"
 
-# Restaura backup local (desde carpeta backups/)
-restore:
-	bash scripts/restore.sh
+echo "🔧  Comprimiendo dump..."
+gzip -f "$SQL_FILE"
 
-# Restaura backup desde entorno productivo remoto o copia
-restore-prod:
-	bash scripts/restore_from_prod.sh
-
-# Backup en la nube (usando rclone)
-backup-cloud:
-	docker exec glpi-web bash /var/www/html/scripts/backup_to_cloud.sh
-
-# Backup manual solo de la base de datos
-backup-db:
-	docker exec glpi-db /usr/bin/mysqldump -uglpi -pglpipass glpi > backups/manual_glpi_db.sql
-
-# Acceso interactivo al contenedor web
-shell:
-	docker exec -it glpi-web bash
-
-# Ver logs del contenedor web
-logs:
-	docker logs -f glpi-web
+echo "✅  Backup completado en $SQL_FILE.gz"

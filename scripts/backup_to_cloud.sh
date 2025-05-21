@@ -1,15 +1,45 @@
-#!/bin/bash
-set -e
-DATE=$(date +%F)
-BACKUP_DIR="/backups/daily/$DATE"
-GLPI_FILES="/var/www/html/files"
+#!/usr/bin/env bash
+set -euo pipefail
+
+# --- Ajusta estos valores según tu entorno ---
+CONTAINER_DB="glpi-db"
+DB_NAME="glpi"
+DB_USER="glpi"
+DB_PASS="glpipass"
+REMOTE="rmbc:"
+
+# --- Paths ---
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+DATE="$(date +%F)"
+BACKUP_DIR="$ROOT_DIR/backups/daily/$DATE"
 DB_DUMP="$BACKUP_DIR/glpi.sql"
-ARCHIVE="$BACKUP_DIR/glpi-backup-$DATE.tar.gz"
+ARCHIVE="$BACKUP_DIR/glpi-files-db-$DATE.tar.gz"
 HASHFILE="$ARCHIVE.sha256"
-REMOTE="onedrive_glpi:/glpi-backups/$DATE"
+GLPI_FILES="$ROOT_DIR/volumes/glpi-files"
+
+# --- Prep dir ---
 mkdir -p "$BACKUP_DIR"
-mysqldump -h glpi-db -uglpi -pglpipass glpi > "$DB_DUMP"
-tar -czf "$ARCHIVE" -C "$BACKUP_DIR" glpi.sql -C "$GLPI_FILES" .
+
+# --- Dump de la BD (desde el contenedor) ---
+echo "📝 Dumping DB ($DB_NAME) into $DB_DUMP…"
+docker exec "$CONTAINER_DB" \
+  mysqldump -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" \
+  > "$DB_DUMP"
+
+# --- Empaquetar SQL + archivos ---
+echo "📦 Creating archive $ARCHIVE…"
+tar -czf "$ARCHIVE" \
+  -C "$BACKUP_DIR" "$(basename "$DB_DUMP")" \
+  -C "$GLPI_FILES" .
+
+# --- Suma de comprobación ---
+echo "🔢 Generating SHA256 checksum…"
 sha256sum "$ARCHIVE" > "$HASHFILE"
-rclone copy "$ARCHIVE" "$REMOTE"
-rclone copy "$HASHFILE" "$REMOTE"
+
+# --- Subida con rclone ---
+echo "⬆️  Uploading to remote $REMOTE/$DATE/ …"
+rclone mkdir "$REMOTE/$DATE"
+rclone copy "$ARCHIVE"     "$REMOTE/$DATE"
+rclone copy "$HASHFILE"    "$REMOTE/$DATE"
+
+echo "✅ Backup and upload completed."
